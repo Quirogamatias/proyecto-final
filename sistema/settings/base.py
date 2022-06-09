@@ -34,7 +34,7 @@ ALLOWED_HOSTS = ['*']
 # Application definition
 #me funciona pero no con md5
 INSTALLED_APPS = [
-    'django.contrib.admin',
+    #'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
