@@ -19,3 +19,4 @@ DATABASES = {
         'HOST': 'ec2-54-165-178-178.compute-1.amazonaws.com',
         'PORT': 5432
     }
+}
