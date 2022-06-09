@@ -16,6 +16,8 @@ from django.core.wsgi import get_wsgi_application
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'sistema.settings.production')
 
-application = get_wsgi_application()
+#application = get_wsgi_application()
 #application = DjangoWhiteNoise(application)
 #tengo que ver como subir con main
+from dj_static import Cling
+application = Cling(get_wsgi_application())
