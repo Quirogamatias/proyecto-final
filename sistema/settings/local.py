@@ -2,8 +2,8 @@ from .base import *
 # Database
 # https://docs.djangoproject.com/en/3.1/ref/settings/#databases
 
-DEBUG = False
-#DEBUG = True
+#DEBUG = False
+DEBUG = True
 
 #ALLOWED_HOSTS = []
 #ALLOWED_HOSTS = ['277e-179-62-84-59.sa.ngrok.io'] esto se cambia segun la url que te de ngrok, siempre tiene que estar en funcionamiento la aplicacion
@@ -16,6 +16,7 @@ DATABASES = {
     }
 }
 
+STATICFILES_DIRS = (BASE_DIR,'static')
 #DATABASES = {
  #   'default': {
   #      'ENGINE': 'django.db.backends.postgresql_psycopg2',

@@ -2163,12 +2163,53 @@ class CrearNotas(ValidarProfesor,CreateView):
     fourth_model = Inscripcion
     fifth_model= Alumno
     sixth_model=InscripcionExamen
+    seventh_model=Carrera
     form_class = NotasForm
+    form_class2 = Notas3Form
     template_name = 'institucion/notas/crear_notas.html'
     permission_required = ('institucion.view_notas', 'institucion.add_notas',
                            'institucion.delete_notas', 'institucion.change_notas')
     
-    def post(self,request,*args,**kwargs):        
+    @method_decorator(csrf_exempt)
+    @method_decorator(login_required)
+    def dispatch(self, request, *args, **kwargs):
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self,**kwargs):
+        contexto= {}
+        contexto ['inscripcionexamen'] = self.get_queryset()
+        contexto['form'] = self.form_class2#llamo al form 3 para que no me muestre alumnos hasta que elija la materia
+        return contexto
+
+    def post(self,request,*args,**kwargs):  
+        c=0
+        data = {}
+        try:
+            action = request.POST['action']               
+            if action == 'search_materia_id':  
+                data =[]
+                alumno = self.fifth_model.objects.all()
+                #inscripcion = self.sixth_model.objects.all()
+                carrera = self.seventh_model.objects.filter(id_materia=request.POST['id'])
+                #materia = self.model.objects.all()
+                
+                for h in range(len(carrera)):
+                    for i in Materia.objects.filter(id_materia=request.POST['id']):
+                        if i in carrera[h].id_materia.all():#con el valor i y cin el "in" y con carrera, hago que el in pregunte si existe el valor i en carrera
+                            for k in range(len(alumno)):
+                                if alumno[k].estado == True:
+                                    if carrera[h] in alumno[k].id_carrera.all():
+                                        c=1
+                                        data.append({'id':alumno[k].id_alumno, 'apellido':alumno[k].apellido, 'nombre':alumno[k].nombre})                                          
+                          
+            else:
+                data['error'] = 'ha ocurrido un error'
+                             
+        except Exception as e:
+            data['error'] = str(e)
+        if c==1:
+            return JsonResponse(data, safe=False)
+
         if request.is_ajax():
             form = self.form_class(data = request.POST,files = request.FILES)
             if form.is_valid():
@@ -2183,7 +2224,12 @@ class CrearNotas(ValidarProfesor,CreateView):
                 promedioP = self.third_model.objects.all()
                 inscripcion = self.fourth_model.objects.all()
                 alumno = self.fifth_model.objects.all() 
-                inscripcionexamen = self.sixth_model.objects.all()   
+                inscripcionexamen = self.sixth_model.objects.filter(id_alumno =nuevo.id_alumno, id_materia = nuevo.id_materia )
+                
+                if not inscripcionexamen:
+                    print ("entro nashe")
+                else:
+                    print("nada")
                 if nuevo.notas >= 0 and nuevo.notas <=10:
                     a=0  
                     b=0
@@ -2197,33 +2243,52 @@ class CrearNotas(ValidarProfesor,CreateView):
                         response = JsonResponse({'mensaje':mensaje,'error':error})
                         response.status_code = 400
                         return response
-
+                    
                     if nuevo.tipo == "Final":
-                        for j in range(len(inscripcionexamen)):
-                            if inscripcionexamen[j].estado==True:
-                                for i in range(len(promedioF)):
-                                    if promedioF[i].estado==True:
-                                        if inscripcionexamen[j].id_materia ==promedioF[i].id_materia and inscripcionexamen[j].id_alumno ==promedioF[i].id_alumno:
-                                            if nuevo.id_materia == promedioF[i].id_materia and nuevo.id_alumno == promedioF[i].id_alumno:
-                                                if promedioF[i].cantidad < 4:
-                                                    promedioF[i].cantidad = promedioF[i].cantidad + 1
-                                                    promedioF[i].suma = promedioF[i].suma + nuevo.notas
-                                                    promedioF[i].total=promedioF[i].suma / promedioF[i].cantidad
-                                                    form.save() 
-                                                    promedioF[i].save()
-                                                    mensaje = f'{self.model.__name__} registrado correctamente!'
-                                                    error = 'No hay error!'
-                                                    response = JsonResponse({'mensaje':mensaje,'error':error})
-                                                    response.status_code = 201
-                                                    return response
-                                                else:
-                                                    mensaje = f'{self.model.__name__} no se ha podido registrar, porque ya registro las 4 notas del final!'
-                                                    error = form.errors
-                                                    response = JsonResponse({'mensaje':mensaje,'error':error})
-                                                    response.status_code = 400
-                                                    return response
+                        for k in range(len(promedioP)):
+                            if promedioP[k].estado==True:
+                                if nuevo.id_materia == promedioP[k].id_materia and nuevo.id_alumno == promedioP[k].id_alumno:                       
+                                    if promedioP[k].cantidad == 2:
+                                        if not inscripcionexamen:
+                                            mensaje = f'{self.model.__name__} no se ha podido registrar porque no se inscribio al examen final!'
+                                            error = form.errors
+                                            response = JsonResponse({'mensaje':mensaje,'error':error})
+                                            response.status_code = 400
+                                            return response 
+                                               
                                         else:
-                                            b=1
+                                            for j in range(len(inscripcionexamen)):
+                                                if inscripcionexamen[j].estado==True:
+                                                    for i in range(len(promedioF)):
+                                                        if promedioF[i].estado==True:
+                                                            if inscripcionexamen[j].id_materia ==promedioF[i].id_materia and inscripcionexamen[j].id_alumno ==promedioF[i].id_alumno:
+                                                                if nuevo.id_materia == promedioF[i].id_materia and nuevo.id_alumno == promedioF[i].id_alumno:
+                                                                    if promedioF[i].cantidad < 4:
+                                                                        promedioF[i].cantidad = promedioF[i].cantidad + 1
+                                                                        promedioF[i].suma = promedioF[i].suma + nuevo.notas
+                                                                        promedioF[i].total=promedioF[i].suma / promedioF[i].cantidad
+                                                                        form.save() 
+                                                                        promedioF[i].save()
+                                                                        mensaje = f'{self.model.__name__} registrado correctamente!'
+                                                                        error = 'No hay error!'
+                                                                        response = JsonResponse({'mensaje':mensaje,'error':error})
+                                                                        response.status_code = 201
+                                                                        return response
+                                                                    else:
+                                                                        mensaje = f'{self.model.__name__} no se ha podido registrar, porque ya registro las 4 notas del final!'
+                                                                        error = form.errors
+                                                                        response = JsonResponse({'mensaje':mensaje,'error':error})
+                                                                        response.status_code = 400
+                                                                        return response
+                                                            else:
+                                                                b=1                                     
+
+                                    else:
+                                        mensaje = f'{self.model.__name__} no se ha podido registrar porque no rindio todos los parcialesl!'
+                                        error = form.errors
+                                        response = JsonResponse({'mensaje':mensaje,'error':error})
+                                        response.status_code = 400
+                                        return response
 
                     if b==1:
                         mensaje = f'{self.model.__name__} no se ha podido registrar porque no se inscribio al examen final!'
@@ -2290,10 +2355,12 @@ class CrearNotasP(ValidarProfesor,CreateView):
     fourth_model = Inscripcion
     fifth_model= Alumno
     sixth_model=InscripcionExamen
-    form_class = NotasPForm
+    form_class = NotasP3Form
+    form_class2 = NotasP2Form
     seventh_model = Profesor
     eighth_model = InscripcionProfesor
     nineth_model = Materia
+    tenth_model = Carrera
     template_name = 'institucion/notas/crear_notasp.html'
     permission_required = ('institucion.view_notas', 'institucion.add_notas',
                            'institucion.delete_notas', 'institucion.change_notas')
@@ -2306,6 +2373,7 @@ class CrearNotasP(ValidarProfesor,CreateView):
     def get_context_data(self, **kwargs):
         profesor=self.seventh_model.objects.filter(id_usuario=self.request.user,estado = True)
         #m = self.sixth_model.objects.all()
+        
         inscripcionprofesor=self.eighth_model.objects.all()
         materia=self.nineth_model.objects.all()
 
@@ -2318,15 +2386,13 @@ class CrearNotasP(ValidarProfesor,CreateView):
             if inscripcionprofesor[k].estado == True:
                 for j in range(len(materia)):
                     if materia[j].estado == True:
-                        if inscripcionprofesor[k].id_materia == materia[j]:
-                            
-                            print (materia[j])
+                        if inscripcionprofesor[k].id_materia == materia[j]:                            
                             a.append(materia[j])
                             #print (a) se van agregando las materias
         
         context = super(CrearNotasP, self).get_context_data(**kwargs)
         if 'form' not in context:            
-            context['form'] = self.form_class(self.request.GET)
+            context['form'] = self.form_class2(self.request.GET,self.request.user)
         context["profesores"]=profesor 
         context["materias"]=a           
         return context
@@ -2341,22 +2407,28 @@ class CrearNotasP(ValidarProfesor,CreateView):
              #       print(inscripcion_profesor[j])
 
     #tengo que ver como enviar la seleccion de la materia para esta parte
+    #me falta ver como hacer para que no me muestre un error por enviar un dato vacio, tal vez en form tenga que modificar algo
     def post(self,request,*args,**kwargs):  
-        print ("Entroooo2")
         c=0
+        aux=0
         data = {}
         try:
-            action = request.POST['action']               
+            action = request.POST['action']          
             if action == 'search_tipo':  
-                print ("Entroooo")
                 data =[]
                 alumno = self.fifth_model.objects.all()
+                mat=self.nineth_model.objects.all()
+                for j in range(len(mat)):
+                    if mat[j].estado==True:
+                        if mat[j].materia==request.POST['id']:
+                            aux=mat[j].id_materia
+                
                 #inscripcion = self.sixth_model.objects.all()
-                carrera = self.seventh_model.objects.filter(id_materia=request.POST['id'])
-                materia = self.model.objects.all()
+                carrera = self.tenth_model.objects.filter(id_materia=aux)
+                #materia = self.model.objects.all()
                 
                 for h in range(len(carrera)):
-                    for i in Materia.objects.filter(id_materia=request.POST['id']):
+                    for i in Materia.objects.filter(id_materia=aux):
                         if i in carrera[h].id_materia.all():#con el valor i y cin el "in" y con carrera, hago que el in pregunte si existe el valor i en carrera
                             for k in range(len(alumno)):
                                 if alumno[k].estado == True:
@@ -2372,14 +2444,23 @@ class CrearNotasP(ValidarProfesor,CreateView):
         if c==1:
             return JsonResponse(data, safe=False)      
         if request.is_ajax():
-            form = self.form_class(data = request.POST,files = request.FILES)
+            form = self.form_class2(data = request.POST,files = request.FILES)
             if form.is_valid():
+                id_materia=request.POST.get('materia')
+                aux2 =0
+                mat=self.nineth_model.objects.all()
+                for j in range(len(mat)):
+                    if mat[j].estado==True:
+                        if mat[j].materia == id_materia:
+                            aux2=mat[j]
+                
                 nuevo= Notas(
-                    notas=form.cleaned_data.get('notas'),
-                    id_materia=form.cleaned_data.get('id_materia'),
+                    notas=form.cleaned_data.get('notas'),   
+                    id_materia=aux2,             
                     id_alumno=form.cleaned_data.get('id_alumno'),
                     tipo=form.cleaned_data.get('tipo')
                 )
+                
                 
                 promedioF = self.second_model.objects.all()
                 promedioP = self.third_model.objects.all()
@@ -2406,12 +2487,12 @@ class CrearNotasP(ValidarProfesor,CreateView):
                                 for i in range(len(promedioF)):
                                     if promedioF[i].estado==True:
                                         if inscripcionexamen[j].id_materia ==promedioF[i].id_materia and inscripcionexamen[j].id_alumno ==promedioF[i].id_alumno:
-                                            if nuevo.id_materia == promedioF[i].id_materia and nuevo.id_alumno == promedioF[i].id_alumno:
+                                            if nuevo.id_materia == promedioF[i].id_materia and nuevo.id_alumno == promedioF[i].id_alumno:                                                
                                                 if promedioF[i].cantidad < 4:
                                                     promedioF[i].cantidad = promedioF[i].cantidad + 1
                                                     promedioF[i].suma = promedioF[i].suma + nuevo.notas
                                                     promedioF[i].total=promedioF[i].suma / promedioF[i].cantidad
-                                                    form.save() 
+                                                    nuevo.save() 
                                                     promedioF[i].save()
                                                     mensaje = f'{self.model.__name__} registrado correctamente!'
                                                     error = 'No hay error!'
@@ -3572,6 +3653,92 @@ class MensajeAdvertenciaAsistencia(LoginYSuperStaffMixin, ValidarPermisosMixin,L
                            
         return render(request,'institucion/porcentaje/listar_porcentaje.html')
 
+class MensajeEvento(LoginYSuperStaffMixin, ValidarPermisosMixin,ListView):
+    template_name = 'institucion/mensaje/mensaje_evento.html'
+    model = Fecha
+    second_model = Alumno
+    third_model = Inscripcion
+    #necesito tener los datos de fecha y el dia actual, despues cuando estan a 2 dias de anticipacion,
+    #enviar un mensaje automatico a el alumno o profesor, que tiene la notificacion activada, y solo enviar un mensaje
+    #enviar el mensaje cuando sean las 12 del medio dia
+    def post(self,request,*args,**kwargs): 
+        alumno = self.model.objects.all()
+        promedioasistencia = self.second_model.objects.all()
+        materia = self.third_model.objects.all() 
+
+        if request.method == "POST":
+            asunto = request.POST["txtAsunto"]
+            mensajes = request.POST["txtMensaje"]#+ "/ Materia: " + request.POST["txtEmail"]
+            email_desde = settings.EMAIL_HOST_USER
+                    
+        for k in range(len(promedioasistencia)):
+            if promedioasistencia[k].estado == True:        
+                for i in range(len(alumno)):
+                    if alumno[i].estado == True and alumno[i].notificacion == True:                        
+                        if promedioasistencia[k].id_alumno == alumno[i]:                                                   
+                            for j in range(len(materia)):
+                                if materia[j].estado == True and promedioasistencia[k].id_materia == materia[j]:
+                                    if promedioasistencia[k].promedio < 75:
+                                    #asunto = "Mensaje de advertencia de asistencia de materia"
+                                    #mensajes = "se comunica al alumno que la asistencia de la materia es menor al 75%"
+                                    #email_desde = settings.EMAIL_HOST_USER
+                                        mensajes="Se comunica que el alumno: "+alumno[i].apellido +mensajes+ "Materia: " + materia[j].materia
+                                        email_para= "sistema.academico.ipes@gmail.com",alumno[i].email
+                                        send_mail(asunto,mensajes,email_desde,email_para, fail_silently=False)
+
+                           
+        return render(request,'institucion/porcentaje/listar_porcentaje.html')
+
+def Mensaje_Evento(request,self):
+    model = Fecha
+    second_model = Alumno
+    third_model = Inscripcion
+
+    #pregunta = Pregunta.objects.get(pk=pk)
+    fecha = self.model.objects.all()
+    alumno = self.second_model.objects.all()
+    inscripcion = self.third_model.objects.all() 
+
+    ahora = datetime.date.today()
+    ayer = ahora - datetime.timedelta(days=2)
+    doce = ahora + datetime.timedelta(hours=12)
+    #doce = timedelta(
+     #   minutes=0,
+      #  hours=12)
+
+    email_desde = settings.EMAIL_HOST_USER
+
+    if ahora == doce:
+        print ("entro")
+    for i in range(len(fecha)):
+        if fecha[i].estado == True:
+            #if fecha[i].evento=="examen":
+            if ahora < fecha[i].fecha_evento:
+                #dias_dies = fecha[i].fecha_evento - datetime.timedelta(days=10)
+                dias_dos = fecha[i].fecha_evento - datetime.timedelta(days=2)                                
+                if ayer == dias_dos:
+                    for k in range(len(alumno)):
+                        if alumno[k].estado == True:
+                            if alumno[k].notificacion == True:
+                                asunto = "Notificacion de Calendario"
+                                mensajes="Se comunica que el dia: "+fecha[i].fecha_evento + ", Tiene el evento del calendario: " + fecha[i].evento
+                                email_para= "sistema.academico.ipes@gmail.com",alumno[k].email
+                                send_mail(asunto,mensajes,email_desde,email_para, fail_silently=False)
+ 
+                        
+
+
+    if request.method=='POST':
+        #form = self.form_class(request.POST,instance = self.get_object())
+        form = PreguntaForm(request.POST, instance=pregunta)
+        if form.is_valid():
+            form.save()
+            return redirect('institucion:pregunta_detalle',pk)
+    else:
+        form = PreguntaForm(instance=pregunta)
+        context = {'form': form}
+    return render(request,'institucion/encuesta/pregunta_editar.html',context)
+
 
 
 class CrearInscripcionProfesor(ValidarAdministrador,CreateView):
@@ -3710,21 +3877,64 @@ class EliminarInscripcionProfesor(ValidarAdministrador,DeleteView):
 class CrearInscripcionExamen(ValidarAdministrador,CreateView):
     model = InscripcionExamen
     form_class = InscripcionExamenForm
+    form_class2 = InscripcionExamen2Form
     second_model = Inscripcion
     second_form_class = InscripcionForm
     third_model= Notas
     fourth_model= Fecha
+    fifth_model=Alumno
+    seventh_model=Carrera
     template_name = 'institucion/inscripcionexamen/crear_inscripcion_examen.html'
     permission_required = ('institucion.view_inscripcionexamen', 'institucion.add_inscripcionexamen',
                            'institucion.delete_inscripcionexamen', 'institucion.change_inscripcionexamen')
 
-    def get_context_data(self, **kwargs):
-        context = super(CrearInscripcionExamen, self).get_context_data(**kwargs)
-        if 'form' not in context:
-            context['form'] = self.form_class(self.request.GET)
-        return context
+    @method_decorator(csrf_exempt)
+    @method_decorator(login_required)
+    def dispatch(self, request, *args, **kwargs):
+        return super().dispatch(request, *args, **kwargs)
+
+
+    #def get_context_data(self, **kwargs):
+     #   context = super(CrearInscripcionExamen, self).get_context_data(**kwargs)
+      #  if 'form' not in context:
+       #     context['form'] = self.form_class2(self.request.GET)
+        #return context
+        #lo comente porque puse el de abajo, nose si dara problemas
+
+    def get_context_data(self,**kwargs):
+        contexto= {}
+        contexto ['inscripcionexamen'] = self.get_queryset()
+        contexto['form'] = self.form_class2
+        return contexto
     
     def post(self,request,*args,**kwargs):
+        c=0
+        data = {}
+        try:
+            action = request.POST['action']               
+            if action == 'search_materia_id':  
+                data =[]
+                alumno = self.fifth_model.objects.all()
+                #inscripcion = self.sixth_model.objects.all()
+                carrera = self.seventh_model.objects.filter(id_materia=request.POST['id'])
+                #materia = self.model.objects.all()                
+                for h in range(len(carrera)):
+                    for i in Materia.objects.filter(id_materia=request.POST['id']):
+                        if i in carrera[h].id_materia.all():#con el valor i y cin el "in" y con carrera, hago que el in pregunte si existe el valor i en carrera
+                            for k in range(len(alumno)):
+                                if alumno[k].estado == True:
+                                    if carrera[h] in alumno[k].id_carrera.all():
+                                        c=1
+                                        data.append({'id':alumno[k].id_alumno, 'apellido':alumno[k].apellido, 'nombre':alumno[k].nombre})                                          
+                          
+            else:
+                data['error'] = 'ha ocurrido un error'
+                             
+        except Exception as e:
+            data['error'] = str(e)
+        if c==1:
+            return JsonResponse(data, safe=False)
+
         a=0
         b=0
         c=0
@@ -3732,79 +3942,134 @@ class CrearInscripcionExamen(ValidarAdministrador,CreateView):
         ayer = ahora - datetime.timedelta(days=10)
         if request.is_ajax():
             form = self.form_class(data = request.POST,files = request.FILES)
+            #form = self.form_class(data = request.POST,files = request.FILES,instance = self.get_object())
+            
             if form.is_valid():
                 nuevo= InscripcionExamen(
                     id_alumno=form.cleaned_data.get('id_alumno'),
                     id_materia=form.cleaned_data.get('id_materia')                    
                 )
 
-                inscripcionexamen = self.model.objects.all()
+                inscripcionexamen = self.model.objects.filter(id_alumno =nuevo.id_alumno, id_materia = nuevo.id_materia )
                 inscripcion = self.second_model.objects.all()
                 notas = self.third_model.objects.all()
-                fecha = self.fourth_model.objects.all()
+                fecha = self.fourth_model.objects.filter(evento="mesas")
+                print (fecha)
                 for j in range(len(inscripcion)):
                     if inscripcion[j].estado == True:
                         if inscripcion[j].id_alumno == nuevo.id_alumno and inscripcion[j].id_materia == nuevo.id_materia:                        
                             a=1
                 if a==1:
-                    for i in range(len(inscripcionexamen)):
-                        if inscripcionexamen[i].estado == True:
-                            if inscripcionexamen[i].id_alumno == nuevo.id_alumno and inscripcionexamen[i].id_materia == nuevo.id_materia:
-                                mensaje = f'{self.model.__name__} no se ha podido registrar porque el alumno ya se inscribio a el examen!'
-                                error = form.errors
-                                response = JsonResponse({'mensaje':mensaje,'error':error})
-                                response.status_code = 400
-                                return response
-
-                    for j in range(len(notas)):
-                        if notas[j].estado == True:
-                            if notas[j].id_alumno == nuevo.id_alumno and notas[j].id_materia == nuevo.id_materia:
-                                if notas[j].tipo == "Parcial":
-                                    if notas[j].notas >=6:
-                                        b=b+1
-                                    else:
-                                        mensaje = f'{self.model.__name__} no se ha podido registrar el alumno al examen porque le falta aprobar los parciales!'
-                                        error = form.errors
-                                        response = JsonResponse({'mensaje':mensaje,'error':error})
-                                        response.status_code = 400
-                                        return response
-                    if b==2:
-                        for i in range(len(fecha)):
-                            if fecha[i].estado == True:
-                                if fecha[i].evento=="mesas":
-                                    c=1
-                                    if ahora < fecha[i].fecha_evento:
-                                        dias_dies = fecha[i].fecha_evento - datetime.timedelta(days=10)
-                                        dias_dos = fecha[i].fecha_evento - datetime.timedelta(days=2)                                
-                                        if ahora >= dias_dies and ahora < dias_dos:
-                                            form.save()
-                                            mensaje = f'{self.model.__name__} registrado correctamente!'
-                                            error = 'No hay error!'
-                                            response = JsonResponse({'mensaje':mensaje,'error':error})
-                                            response.status_code = 201
-                                            return response
+                    if not inscripcionexamen:
+                        for j in range(len(notas)):
+                            if notas[j].estado == True:
+                                if notas[j].id_alumno == nuevo.id_alumno and notas[j].id_materia == nuevo.id_materia:
+                                    if notas[j].tipo == "Parcial":
+                                        if notas[j].notas >=6:
+                                            b=b+1
                                         else:
-                                            mensaje = f'{self.model.__name__} no se ha podido registrar porque ya paso el tiempo para inscribirse al examen, espere al proximo llamada!'
+                                            mensaje = f'{self.model.__name__} no se ha podido registrar el alumno al examen porque le falta aprobar los parciales!'
                                             error = form.errors
                                             response = JsonResponse({'mensaje':mensaje,'error':error})
                                             response.status_code = 400
                                             return response
-                        if c==1:
-                            mensaje = f'{self.model.__name__} no se ha podido registrar porque ya paso el tiempo para inscribirse al examen, espere al proximo llamada, verifiquelo en el calendario!'
+                        if b==2:
+                            if not fecha:
+                                mensaje = f'{self.model.__name__} no se ha podido registrar porque ya paso el tiempo para inscribirse al examen, espere al proximo llamada, verifiquelo en el calendario!'
+                                error = form.errors
+                                response = JsonResponse({'mensaje':mensaje,'error':error})
+                                response.status_code = 400
+                                return response
+                            else:
+                                for i in range(len(fecha)):
+                                    if fecha[i].estado == True:
+                                        if fecha[i].evento=="mesas":
+                                            c=1
+                                            if ahora < fecha[i].fecha_evento:
+                                                dias_dies = fecha[i].fecha_evento - datetime.timedelta(days=10)
+                                                dias_dos = fecha[i].fecha_evento - datetime.timedelta(days=2)                                
+                                                if ahora >= dias_dies and ahora < dias_dos:
+                                                    form.save()
+                                                    mensaje = f'{self.model.__name__} registrado correctamente!'
+                                                    error = 'No hay error!'
+                                                    response = JsonResponse({'mensaje':mensaje,'error':error})
+                                                    response.status_code = 201
+                                                    return response
+                                                else:
+                                                    mensaje = f'{self.model.__name__} no se ha podido registrar porque ya paso el tiempo para inscribirse al examen, espere al proximo llamado!'
+                                                    error = form.errors
+                                                    response = JsonResponse({'mensaje':mensaje,'error':error})
+                                                    response.status_code = 400
+                                                    return response                                        
+                                if c==1:
+                                    mensaje = f'{self.model.__name__} no se ha podido registrar porque ya paso el tiempo para inscribirse al examen, espere al proximo llamada, verifiquelo en el calendario!'
+                                    error = form.errors
+                                    response = JsonResponse({'mensaje':mensaje,'error':error})
+                                    response.status_code = 400
+                                    return response                        
+                        else:
+                            mensaje = f'{self.model.__name__} no se ha podido registrar porque el alumno no aprobo los parciales!'
                             error = form.errors
                             response = JsonResponse({'mensaje':mensaje,'error':error})
                             response.status_code = 400
                             return response
 
+                    else: 
+                        for i in range(len(inscripcionexamen)):
+                            if inscripcionexamen[i].estado == True:
+                                if inscripcionexamen[i].id_alumno == nuevo.id_alumno and inscripcionexamen[i].id_materia == nuevo.id_materia:
+                                    mensaje = f'{self.model.__name__} no se ha podido registrar porque el alumno ya se inscribio a el examen!'
+                                    error = form.errors
+                                    response = JsonResponse({'mensaje':mensaje,'error':error})
+                                    response.status_code = 400
+                                    return response
 
+                        for j in range(len(notas)):
+                            if notas[j].estado == True:
+                                if notas[j].id_alumno == nuevo.id_alumno and notas[j].id_materia == nuevo.id_materia:
+                                    if notas[j].tipo == "Parcial":
+                                        if notas[j].notas >=6:
+                                            b=b+1
+                                        else:
+                                            mensaje = f'{self.model.__name__} no se ha podido registrar el alumno al examen porque le falta aprobar los parciales!'
+                                            error = form.errors
+                                            response = JsonResponse({'mensaje':mensaje,'error':error})
+                                            response.status_code = 400
+                                            return response
+                        if b==2:
+                            for i in range(len(fecha)):
+                                if fecha[i].estado == True:
+                                    if fecha[i].evento=="mesas":
+                                        c=1
+                                        if ahora < fecha[i].fecha_evento:
+                                            dias_dies = fecha[i].fecha_evento - datetime.timedelta(days=10)
+                                            dias_dos = fecha[i].fecha_evento - datetime.timedelta(days=2)                                
+                                            if ahora >= dias_dies and ahora < dias_dos:
+                                                form.save()
+                                                mensaje = f'{self.model.__name__} registrado correctamente!'
+                                                error = 'No hay error!'
+                                                response = JsonResponse({'mensaje':mensaje,'error':error})
+                                                response.status_code = 201
+                                                return response
+                                            else:
+                                                mensaje = f'{self.model.__name__} no se ha podido registrar porque ya paso el tiempo para inscribirse al examen, espere al proximo llamada!'
+                                                error = form.errors
+                                                response = JsonResponse({'mensaje':mensaje,'error':error})
+                                                response.status_code = 400
+                                                return response
+                            if c==1:
+                                mensaje = f'{self.model.__name__} no se ha podido registrar porque ya paso el tiempo para inscribirse al examen, espere al proximo llamada, verifiquelo en el calendario!'
+                                error = form.errors
+                                response = JsonResponse({'mensaje':mensaje,'error':error})
+                                response.status_code = 400
+                                return response
 
-                       
-                    else:
-                        mensaje = f'{self.model.__name__} no se ha podido registrar porque el alumno no aprobo los parciales!'
-                        error = form.errors
-                        response = JsonResponse({'mensaje':mensaje,'error':error})
-                        response.status_code = 400
-                        return response
+                        else:
+                            mensaje = f'{self.model.__name__} no se ha podido registrar porque el alumno no aprobo los parciales!'
+                            error = form.errors
+                            response = JsonResponse({'mensaje':mensaje,'error':error})
+                            response.status_code = 400
+                            return response
 
                 else:
                     mensaje = f'{self.model.__name__} no se ha podido registrar porque no esta inscripcto a la materia!'
@@ -3877,11 +4142,11 @@ class CrearInscripcionExamenAlumno(ValidarAlumno,CreateView):
         ahora = datetime.date.today()
         ayer = ahora - datetime.timedelta(days=10)
         form = self.form_class()
-        inscripcionexamen = self.model.objects.all()
+        inscripcionexamen = self.model.objects.filter(id_alumno =nuevo.id_alumno, id_materia = nuevo.id_materia )
         inscripcion = self.second_model.objects.all()
         notas = self.third_model.objects.all()
-        fecha = self.fourth_model.objects.all()
-
+        fecha = self.fourth_model.objects.filter(evento="mesas")
+        
         for j in range(len(inscripcion)):
             if inscripcion[j].estado == True:
                 for i in range(len(alumno)):
@@ -3893,10 +4158,13 @@ class CrearInscripcionExamenAlumno(ValidarAlumno,CreateView):
                                         if inscripcion[j].id_materia == materia[i]:                      
                                             a=1
         if a==1:
-            for i in range(len(inscripcionexamen)):
-                if inscripcionexamen[i].estado == True:
-                    if inscripcionexamen[i].id_alumno == nuevo.id_alumno and inscripcionexamen[i].id_materia == nuevo.id_materia:
-                        return render(request,'institucion/inscripcionexamen/mensaje1.html') 
+            if not inscripcionexamen:
+                return render(request,'institucion/inscripcionexamen/mensaje4.html') 
+            else:
+                for i in range(len(inscripcionexamen)):
+                    if inscripcionexamen[i].estado == True:
+                        if inscripcionexamen[i].id_alumno == nuevo.id_alumno and inscripcionexamen[i].id_materia == nuevo.id_materia:
+                            return render(request,'institucion/inscripcionexamen/mensaje1.html') 
              
             for j in range(len(notas)):
                 if notas[j].estado == True:
@@ -3908,19 +4176,22 @@ class CrearInscripcionExamenAlumno(ValidarAlumno,CreateView):
                                 return render(request,'institucion/inscripcionexamen/mensaje2.html') 
                         
             if b==2:
-                for i in range(len(fecha)):
-                    if fecha[i].estado == True:
-                        if fecha[i].evento=="mesas":
-                            #c=1
-                            if ahora < fecha[i].fecha_evento:
-                                dias_dies = fecha[i].fecha_evento - datetime.timedelta(days=10)
-                                dias_dos = fecha[i].fecha_evento - datetime.timedelta(days=2)                                
-                                if ahora >= dias_dies and ahora < dias_dos:
-                                    nuevo.save()
-                                    return render(request,'institucion/inscripcionexamen/mensaje3.html') 
-                        
-                                else:
-                                    return render(request,'institucion/inscripcionexamen/mensaje4.html') 
+                if not fecha:
+                    return render(request,'institucion/inscripcionexamen/mensaje4.html') 
+                else:                     
+                    for i in range(len(fecha)):
+                        if fecha[i].estado == True:
+                            if fecha[i].evento=="mesas":
+                                #c=1
+                                if ahora < fecha[i].fecha_evento:
+                                    dias_dies = fecha[i].fecha_evento - datetime.timedelta(days=10)
+                                    dias_dos = fecha[i].fecha_evento - datetime.timedelta(days=2)                                
+                                    if ahora >= dias_dies and ahora < dias_dos:
+                                        nuevo.save()
+                                        return render(request,'institucion/inscripcionexamen/mensaje3.html') 
+                            
+                                    else:
+                                        return render(request,'institucion/inscripcionexamen/mensaje4.html') 
                
             else:
                 return render(request,'institucion/inscripcionexamen/mensaje5.html') 
@@ -4449,3 +4720,11 @@ def Listado_Respuestas(request,pk):
     preguntas = Pregunta.objects.get(pk=pk)
     return render(request,'institucion/encuesta/listado_respuestas.html',{'preguntas':preguntas})
 
+#tengo que optimizar cirtos template, para que funcionen mejor, como cuando registro materias, solo me muestre los hoorarios disponibles
+# en notas tambien tendria que hacer lo mismo, que solo me muestren lso alumnos que estan inscripcto a esa materia
+#como lo hice en inscripcion d
+#me falta aregglar lo de la inscripcion que es si no tengo usuarios inscripto me da error, y en inscripcion tambien nose el error-listo
+#en fecha tambien tengo que arreglar lo de si es vacio el resultado y si no existe el evento mesas-listo
+#cambie el form de inscripcionexamenform, nose si afecta a otro template
+#en inscribir notas tambien puedo modificar el form de notas
+#ya me funciona el crear notap del usuario profesor, tendria que ver para que no me deje inscribir mas notas despues de aprobar con mayor de 6

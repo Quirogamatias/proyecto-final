@@ -750,13 +750,54 @@ class NotasForm(forms.ModelForm):
             )
         }
 
+class Notas3Form(forms.ModelForm):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['id_materia'].queryset = Materia.objects.filter(estado = True)
+        self.fields['id_alumno'].queryset = Alumno.objects.none()
+    class Meta:
+        model = Notas
+        fields = ['notas','id_materia','id_alumno','tipo']
+
+        labels = {
+            'notas': 'notas',
+            'id_materia': 'id de la materia',
+            'id_alumno': 'id del alumno',
+            'tipo': 'tipo de Examen',
+
+        }
+        
+        widgets = {
+            'notas': forms.TextInput(
+                attrs = {
+                    'class':'form-control',
+                    'placeholder':'Ingrese las notas'
+                }
+            ),
+            'id_materia': forms.Select(
+                attrs = {
+                    'class':'form-control'
+                }
+            ),
+            'id_alumno':forms.Select(
+                attrs = {
+                    'class':'form-control'
+                }
+            ),
+            'tipo': forms.Select(
+                attrs = {
+                    'class':'form-control'
+                }
+            )
+        }
+
 class NotasPForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['id_materia'].queryset = Materia.objects.filter(estado=True)
         self.fields['id_alumno'].queryset = Alumno.objects.filter(estado=True)
-        #el id de alumno tiene que ser none para cuando seleccione la materia me muestre los alumnos que estan en esa materia
+        self.fields['id_materia'].queryset = Materia.objects.filter(estado=True)
     class Meta:
         model = Notas
         fields = ['id_notas','notas','id_materia','id_alumno','tipo']
@@ -786,6 +827,98 @@ class NotasPForm(forms.ModelForm):
             'id_materia': forms.Select(
                 attrs = {
                     'class':'form-control'
+                }
+            ),
+            'id_alumno':forms.Select(
+                attrs = {
+                    'class':'form-control'
+                }
+            ),
+            'tipo': forms.Select(
+                attrs = {
+                    'class':'form-control'
+                }
+            )
+        }
+
+class NotasP3Form(forms.ModelForm):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['id_alumno'].queryset = Alumno.objects.none()
+        self.fields['id_materia'].queryset = Materia.objects.filter(estado=True)
+    class Meta:
+        model = Notas
+        fields = ['id_notas','notas','id_materia','id_alumno','tipo']
+
+        labels = {
+            'id_notas': 'id_notas',
+            'notas': 'notas',
+            'id_materia': 'id de la materia',
+            'id_alumno': 'id del alumno',
+            'tipo': 'tipo de Examen',
+
+        }
+        
+        widgets = {
+            'id_notas':forms.TextInput(
+                attrs = {
+                    'class':'form-control',
+                    'readonly':'readonly'
+                }
+            ),
+            'notas': forms.TextInput(
+                attrs = {
+                    'class':'form-control',
+                    'placeholder':'Ingrese las notas'
+                }
+            ),
+            'id_materia': forms.Select(
+                attrs = {
+                    'class':'form-control'
+                }
+            ),
+            'id_alumno':forms.Select(
+                attrs = {
+                    'class':'form-control'
+                }
+            ),
+            'tipo': forms.Select(
+                attrs = {
+                    'class':'form-control'
+                }
+            )
+        }
+
+class NotasP2Form(forms.ModelForm):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['id_alumno'].queryset = Alumno.objects.filter(estado=True)
+        #self.fields['id_materia'].queryset = Materia.objects.filter(estado=True)
+    class Meta:
+        model = Notas
+        fields = ['id_notas','notas','id_alumno','tipo']
+
+        labels = {
+            'id_notas': 'id_notas',
+            'notas': 'notas',
+            'id_alumno': 'id del alumno',
+            'tipo': 'tipo de Examen',
+
+        }
+        
+        widgets = {
+            'id_notas':forms.TextInput(
+                attrs = {
+                    'class':'form-control',
+                    'readonly':'readonly'
+                }
+            ),
+            'notas': forms.TextInput(
+                attrs = {
+                    'class':'form-control',
+                    'placeholder':'Ingrese las notas'
                 }
             ),
             'id_alumno':forms.Select(
@@ -1015,6 +1148,41 @@ class InscripcionExamenForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['id_alumno'].queryset = Alumno.objects.filter(estado = True)
+        self.fields['id_materia'].queryset = Materia.objects.filter(estado = True)
+
+    class Meta:
+        model = InscripcionExamen
+        fields = ['fecha','id_alumno','id_materia']
+        labels = {
+            'fecha': 'fecha',
+            'id_alumno': 'id_alumno',
+            'id_materia': 'id_materia',
+
+        }
+        widgets = {
+            'fecha': forms.SelectDateWidget(
+                attrs = {
+                    'class':'form-control',
+                    'placeholder':'Ingrese la fecha de inscripcion'
+                }
+            ),
+            'id_alumno': forms.Select(
+                attrs = {
+                    'class':'form-control',
+                }
+            ),
+            'id_materia':forms.Select(
+                attrs = {
+                    'class':'form-control',
+                }
+            )            
+        }
+
+class InscripcionExamen2Form(forms.ModelForm):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['id_alumno'].queryset = Alumno.objects.none()
         self.fields['id_materia'].queryset = Materia.objects.filter(estado = True)
 
     class Meta:

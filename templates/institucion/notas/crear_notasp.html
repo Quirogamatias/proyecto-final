@@ -6,7 +6,7 @@
                 <span aria-hidden="true">&times;</span>
             </button>
         </div>
-        <form id="form_creacion" action="{% url 'institucion:crear_notas' %}" method="POST">
+        <form id="form_creacion" action="{% url 'institucion:crear_notasp' %}" method="POST">
             {% csrf_token %}
             <div class="modal-body">
                 <div id="errores">
@@ -23,10 +23,12 @@
                 </div>
                 <div class="row form-group">
                     <div class="col col-md-3">{{ form.id_materia.label }}</div>
-                    {% for materia in materias %}
-                            <input type="submit" name="materia" class="btn btn-primary" value="{{ materia }}">
-                            
+                    <select name="materia">                        
+                        <option  value="" >---------</option>  
+                    {% for materia in materias %}     
+                        <option  value="{{ materia }}" >{{ materia }}</option>
                     {% endfor %}
+                </select>
                 </div>
                 <div class="row form-group">
                     <div class="col col-md-3">{{ form.id_alumno.label }}</div>
@@ -51,7 +53,7 @@
          $('select[name="materia"]').on('change',function(){
              var id = $(this).val();
              var select_alumno = $('select[name="id_alumno"]');
-             var options = '<option value="">------------</option>';
+             var options = '<option value="">---------</option>';
              if (id === ''){
                  select_alumno.html(options);
                  return false;
