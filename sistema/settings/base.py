@@ -23,8 +23,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = '2n(u-33^pqohqcezwy^*m4=od-x^$*!w%q2!!$%p_1%rxy&d0j'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-#DEBUG = False
-DEBUG = True
+DEBUG = False
+#DEBUG = True
 
 #ALLOWED_HOSTS = []
 #ALLOWED_HOSTS = ['277e-179-62-84-59.sa.ngrok.io'] esto se cambia segun la url que te de ngrok, siempre tiene que estar en funcionamiento la aplicacion

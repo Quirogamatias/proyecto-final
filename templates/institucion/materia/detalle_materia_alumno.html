@@ -32,7 +32,7 @@ Materia | {{ materia.materia }}
                                 {% for alumno in alumnos %}
                                 {% if alumno == inscripcion.id_alumno %} 
                                 <a href="{% url 'institucion:detalle_alumno' alumno.pk %}">
-                                <p class="card-text"><strong>Alumno</strong></p>{{ inscripcion.id_alumno }}
+                                {{ inscripcion.id_alumno }}
                                 </a>
                                 {% endif %}
                                 {% endfor %}

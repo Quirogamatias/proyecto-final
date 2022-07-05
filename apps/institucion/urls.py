@@ -143,7 +143,7 @@ urlpatterns = [
     path('detalle_materia_alumno/<int:pk>/',login_required(DetalleMateriaAlumno.as_view()), name = 'detalle_materia_alumno'),
     path('detalle_inscripcion/<int:pk>/',login_required(DetalleInscripcion.as_view()), name = 'detalle_inscripcion'),
     path('detalle_alumno/<int:pk>/',login_required(DetalleAlumno.as_view()), name = 'detalle_alumno'),
+    path('detalle_alumnoA/<int:pk>/',login_required(DetalleAlumnoA.as_view()), name = 'detalle_alumnoA'),
     path('asistencia_materia/<int:pk>/',login_required(AsistenciaMateria.as_view()), name = 'asistencia_materia'),
     path('test/',TestView.as_view(), name = 'test'),
-      
 ]

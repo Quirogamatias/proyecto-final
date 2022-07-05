@@ -1001,6 +1001,46 @@ class AsistenciaForm(forms.ModelForm):
             )            
         }
 
+class Asistencia2Form(forms.ModelForm):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['id_materia'].queryset = Materia.objects.filter(estado = True)
+        self.fields['id_alumno'].queryset = Alumno.objects.none()
+
+    class Meta:
+        model = Asistencia
+        fields = ['id_materia','id_alumno','dia','asistencia']
+        labels = {
+            'id_materia': 'id_materia',
+            'id_alumno': 'id_alumno',
+            'dia': 'dia',
+            'asistencia': 'asistencia',
+
+        }
+        widgets = {
+            'id_materia': forms.Select(
+                attrs = {
+                    'class':'form-control',
+                }
+            ),
+            'id_alumno': forms.Select(
+                attrs = {
+                    'class':'form-control'
+                }
+            ),
+            'dia': forms.SelectDateWidget(
+                attrs = {
+                    'class':'form-control',
+                }
+            ),
+            'asistencia':forms.Select(
+                attrs = {
+                    'class':'form-control',
+                }
+            )            
+        }
+
 class FechaForm(forms.ModelForm):
 
     class Meta:

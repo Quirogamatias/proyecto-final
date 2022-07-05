@@ -26,3 +26,10 @@ STATICFILES_DIRS = (BASE_DIR,'static')
       #  'HOST': 'localhost',
        # 'PORT': 5432
  #   }
+EMAIL_BACKEND ="django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_USE_TLS = True
+EMAIL_PORT = 587
+EMAIL_HOST_USER = "sistema.academico.ipes@gmail.com"
+EMAIL_HOST_PASSWORD = "twrrnwyrawgxypma"
+#EMAIL_HOST_PASSWORD = "ipes2021"

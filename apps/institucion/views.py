@@ -33,7 +33,7 @@ class InicioEncuesta(ValidarAdministrador, TemplateView):
     permission_required = ('institucion.view_administrador', 'institucion.add_administrador',
                            'institucion.delete_administrador', 'institucion.change_administrador')
 
-class InicioRespuesta(LoginYSuperStaffMixin, TemplateView):
+class InicioRespuesta(ValidarProfesorA, TemplateView):
     template_name = 'institucion/encuesta/listar_preguntas_alumno.html'
     permission_required = ('institucion.view_respuesta', 'institucion.add_respuesta',
                            'institucion.delete_respuesta', 'institucion.change_respuesta')
@@ -2473,14 +2473,14 @@ class CrearNotasP(ValidarProfesor,CreateView):
                     for i in range(len(inscripcion)):
                         if inscripcion[i].id_alumno == nuevo.id_alumno and inscripcion[i].id_materia == nuevo.id_materia:
                             a=1
-
+                    
                     if a==0:
                         mensaje = f'{self.model.__name__} no se ha podido registrar, porque el alumno no esta inscripto a esta materia!'
                         error = form.errors
                         response = JsonResponse({'mensaje':mensaje,'error':error})
                         response.status_code = 400
                         return response
-
+                    
                     if nuevo.tipo == "Final":
                         for j in range(len(inscripcionexamen)):
                             if inscripcionexamen[j].estado==True:
@@ -2515,7 +2515,6 @@ class CrearNotasP(ValidarProfesor,CreateView):
                         response.status_code = 400
                         return response
 
-                    
                     if nuevo.tipo == "Parcial":
                         for i in range(len(promedioP)):
                             if promedioP[i].estado==True:
@@ -2524,9 +2523,8 @@ class CrearNotasP(ValidarProfesor,CreateView):
                                         promedioP[i].cantidad = promedioP[i].cantidad + 1
                                         promedioP[i].suma = promedioP[i].suma + nuevo.notas
                                         promedioP[i].total=promedioP[i].suma / promedioP[i].cantidad
-                                        form.save() 
+                                        nuevo.save() 
                                         promedioP[i].save()
-                                        print(nuevo.notas)
                                         if nuevo.notas < 6:                                            
                                             for j in range(len(alumno)):
                                                 if  nuevo.id_alumno == alumno[j]:
@@ -2753,7 +2751,41 @@ class ActualizarAsistencia(ValidarProfesor,UpdateView):
     template_name = 'institucion/asistencia/asistencia.html'
     permission_required = ('institucion.view_asistencia', 'institucion.add_asistencia',
                            'institucion.delete_asistencia', 'institucion.change_asistencia')
+
+    @method_decorator(csrf_exempt)
+    @method_decorator(login_required)
+    def dispatch(self, request, *args, **kwargs):
+        return super().dispatch(request, *args, **kwargs)
+
     def post(self,request,*args,**kwargs):
+        c=0
+        data = {}
+        try:
+            action = request.POST['action']               
+            if action == 'search_materia_id':  
+                data =[]
+                alumno = self.fifth_model.objects.all()
+                #inscripcion = self.sixth_model.objects.all()
+                carrera = self.seventh_model.objects.filter(id_materia=request.POST['id'])
+                #materia = self.model.objects.all()
+                
+                for h in range(len(carrera)):
+                    for i in Materia.objects.filter(id_materia=request.POST['id']):
+                        if i in carrera[h].id_materia.all():#con el valor i y cin el "in" y con carrera, hago que el in pregunte si existe el valor i en carrera
+                            for k in range(len(alumno)):
+                                if alumno[k].estado == True:
+                                    if carrera[h] in alumno[k].id_carrera.all():
+                                        c=1
+                                        data.append({'id':alumno[k].id_alumno, 'apellido':alumno[k].apellido, 'nombre':alumno[k].nombre})                                          
+                          
+            else:
+                data['error'] = 'ha ocurrido un error'
+                             
+        except Exception as e:
+            data['error'] = str(e)
+        if c==1:
+            return JsonResponse(data, safe=False)
+        a=0
         b=0
         if request.is_ajax():
             form = self.form_class(data = request.POST,files = request.FILES,instance = self.get_object())
@@ -2849,17 +2881,60 @@ class CrearAsistencia(ValidarProfesor,CreateView):
     model = Asistencia
     second_model = PromedioAsistencia
     third_model = Inscripcion
-    form_class = AsistenciaForm
+    form_class2 = AsistenciaForm
+    form_class = Asistencia2Form
     second_form_class = PromedioAsistenciaForm
     third_form_class = InscripcionForm
+    fifth_model = Alumno
+    #sixth_model= Inscripcion
+    seventh_model=Carrera
     template_name = 'institucion/asistencia/crear_asistencia.html'
     permission_required = ('institucion.view_asistencia', 'institucion.add_asistencia',
                            'institucion.delete_asistencia', 'institucion.change_asistencia')
     
+    @method_decorator(csrf_exempt)
+    @method_decorator(login_required)
+    def dispatch(self, request, *args, **kwargs):
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super(CrearAsistencia, self).get_context_data(**kwargs)
+        if 'form' not in context:
+            context['form'] = self.form_class2(self.request.GET)
+        return context
 
     def post(self,request,*args,**kwargs):
+        c=0
+        data = {}
+        try:
+            action = request.POST['action']               
+            if action == 'search_materia_id':  
+                data =[]
+                alumno = self.fifth_model.objects.all()
+                #inscripcion = self.sixth_model.objects.all()
+                carrera = self.seventh_model.objects.filter(id_materia=request.POST['id'])
+                #materia = self.model.objects.all()
+                
+                for h in range(len(carrera)):
+                    for i in Materia.objects.filter(id_materia=request.POST['id']):
+                        if i in carrera[h].id_materia.all():#con el valor i y cin el "in" y con carrera, hago que el in pregunte si existe el valor i en carrera
+                            for k in range(len(alumno)):
+                                if alumno[k].estado == True:
+                                    if carrera[h] in alumno[k].id_carrera.all():
+                                        c=1
+                                        data.append({'id':alumno[k].id_alumno, 'apellido':alumno[k].apellido, 'nombre':alumno[k].nombre})                                          
+                          
+            else:
+                data['error'] = 'ha ocurrido un error'
+                             
+        except Exception as e:
+            data['error'] = str(e)
+        if c==1:
+            return JsonResponse(data, safe=False)
+        a=0
         if request.is_ajax():
-            form = self.form_class(data = request.POST,files = request.FILES)           
+            print
+            form = self.form_class2(data = request.POST,files = request.FILES)           
             if form.is_valid():
                 
                 nuevo= Asistencia(
@@ -3179,9 +3254,12 @@ class DetalleInscripcion(LoginMixin,ListView):#si es listview me muestra todos l
 #hacer un for o un if en la vista ya que tengo el id de materia y con eso puedo hacer las condiciones y mostrar solo lo que quiero
 #tambien podria guardar los datos que necesito y despues retornar solo esos datos y mostrarlos en el template
 
-class DetalleAlumno(LoginMixin,DetailView):
+class DetalleAlumno(ValidarProfesorA,DetailView):
     model = Alumno
     template_name = 'institucion/alumno/detalle_alumno.html'
+class DetalleAlumnoA(ValidarAdministrador,DetailView):
+    model = Alumno
+    template_name = 'institucion/alumno/detalle_alumnoA.html'
 
 class AsistenciaMateria(LoginMixin,ListView):
     model = Materia    
@@ -4578,7 +4656,7 @@ def Pregunta_Editar(request, pk):
     #return render(request,'institucion/encuesta/responder_pregunta.html',contexto)
 #falta hacer, que cada usuario conteste cada pregunta
 #sin la restriccion de que cada pregunta solo tiene un usuario
-class Responder_Pregunta(LoginYSuperStaffMixin,CreateView):
+class Responder_Pregunta(ValidarProfesorA,CreateView):
     model = Respuesta
     form_class = RespuestaForm
     #second_model = Pregunta
@@ -4628,7 +4706,7 @@ class Responder_Pregunta(LoginYSuperStaffMixin,CreateView):
         else:
             return  redirect ( 'institucion: inicio_respuesta' )
 
-class ListadoPreguntasAlumno(LoginYSuperStaffMixin,ListView):
+class ListadoPreguntasAlumno(ValidarProfesorA,ListView):
     model = Respuesta   
     permission_required = ('institucion.view_respuesta', 'institucion.add_respuesta',
                            'institucion.delete_respuesta', 'institucion.change_respuesta')
@@ -4724,7 +4802,12 @@ def Listado_Respuestas(request,pk):
 # en notas tambien tendria que hacer lo mismo, que solo me muestren lso alumnos que estan inscripcto a esa materia
 #como lo hice en inscripcion d
 #me falta aregglar lo de la inscripcion que es si no tengo usuarios inscripto me da error, y en inscripcion tambien nose el error-listo
-#en fecha tambien tengo que arreglar lo de si es vacio el resultado y si no existe el evento mesas-listo
+
 #cambie el form de inscripcionexamenform, nose si afecta a otro template
-#en inscribir notas tambien puedo modificar el form de notas
 #ya me funciona el crear notap del usuario profesor, tendria que ver para que no me deje inscribir mas notas despues de aprobar con mayor de 6
+
+#darle mas datos al listado del profesor
+#nose si ya lo hice--en inscripcion podria hacer que me elija el alumno y me muestre las materias que puede inscribirse segun la carrera en la que esta inscripto
+#hacer un template para mostrar los detalles de inscripcion del alumno a la materia, como el listar inscripcion
+#agregar template para el alumno listado inscripcion
+#hacer que las pregunta solo puedan ser vista por el admin
